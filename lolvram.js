@@ -197,9 +197,17 @@ const KV_QUANTS = [
     { id: "q8-q4", name: "q8_0/q4_0", kBytes: 1.06, vBytes: 0.56 }
 ]
 
-// max, ½ max, ¼ max — three useful steps; anything smaller is noise.
-function contextSizesFor(model) {
-    return [model.maxCtx, Math.floor(model.maxCtx / 2), Math.floor(model.maxCtx / 4)]
+// max, ½ max, ¼ max by default. With small contexts enabled, keep halving
+// down to 4096 — useful for chat-sized usage but inflates the table.
+function contextSizesFor(model, includeSmall) {
+    const sizes = [model.maxCtx, Math.floor(model.maxCtx / 2), Math.floor(model.maxCtx / 4)]
+    if (!includeSmall) return sizes
+    let c = Math.floor(model.maxCtx / 8)
+    while (c >= 4096) {
+        sizes.push(c)
+        c = Math.floor(c / 2)
+    }
+    return sizes
 }
 
 function weightBytes(params, bpw) {
@@ -392,6 +400,7 @@ const state = {
     mtp: false,
     mtpDraftCount: 1,
     mtpAcceptance: 0.7,
+    smallCtx: false,
     sortKey: "tg",
     sortDir: "desc",
     filters: { model: "", quant: "", kv: "", ctx: "" }
@@ -453,6 +462,8 @@ function readUrl() {
     if (md != null && md >= 0) state.mtpDraftCount = Math.max(0, Math.round(md))
     const ma = num("ma")
     if (ma != null && ma >= 0 && ma <= 1) state.mtpAcceptance = ma
+    const sc = params.get("sc")
+    if (sc != null) state.smallCtx = !(sc === "0" || sc === "false")
     for (const k of ["model", "quant", "kv", "ctx"]) {
         const v = params.get("f" + k[0])
         if (v != null) state.filters[k] = v
@@ -482,6 +493,7 @@ function writeUrl() {
     if (state.mtp) params.set("mtp", "1")
     if (state.mtpDraftCount !== 1) params.set("md", String(state.mtpDraftCount))
     if (state.mtpAcceptance !== 0.7) params.set("ma", String(state.mtpAcceptance))
+    if (state.smallCtx) params.set("sc", "1")
     for (const k of ["model", "quant", "kv", "ctx"]) {
         if (state.filters[k]) params.set("f" + k[0], state.filters[k])
     }
@@ -544,7 +556,7 @@ function buildRows() {
     const match = (haystack, needle) => !needle.trim() || haystack.toLowerCase().includes(needle.trim().toLowerCase())
     for (const model of MODELS) {
         if (!match(model.name, f.model)) continue
-        const ctxs = contextSizesFor(model)
+        const ctxs = contextSizesFor(model, state.smallCtx)
         for (const quant of QUANTS) {
             if (!match(quant.name, f.quant)) continue
             for (const kv of KV_QUANTS) {
@@ -681,6 +693,7 @@ function init() {
     document.getElementById("mtp").checked = state.mtp
     document.getElementById("mtp-draft").value = state.mtpDraftCount
     document.getElementById("mtp-accept").value = state.mtpAcceptance
+    document.getElementById("small-ctx").checked = state.smallCtx
     updateMtpDisable()
     // Prime filter inputs from state once. After this we never write back —
     // the user's typing is the source of truth (avoids the same value-clobber
@@ -737,6 +750,12 @@ function init() {
     document.getElementById("mtp-accept").addEventListener("input", (e) => {
         const v = parseFloat(e.target.value)
         state.mtpAcceptance = Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : 0
+        renderTable()
+        writeUrl()
+    })
+
+    document.getElementById("small-ctx").addEventListener("change", (e) => {
+        state.smallCtx = e.target.checked
         renderTable()
         writeUrl()
     })
