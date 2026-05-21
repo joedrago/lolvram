@@ -88,6 +88,16 @@ const PRESETS = [
         ramBwGBs: 80
     },
     {
+        id: "rtx-4080",
+        name: "RTX 4080 16GB / 32GB DDR4",
+        vramGB: 16,
+        ramGB: 32,
+        unified: null,
+        bandwidthGBs: 717,
+        tflops: 97,
+        ramBwGBs: 50
+    },
+    {
         id: "rtx-3090",
         name: "RTX 3090 24GB / 64GB DDR4",
         vramGB: 24,
