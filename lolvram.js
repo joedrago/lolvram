@@ -54,7 +54,11 @@ const PRESETS = [
         ramGB: 0,
         unified: 0.85,
         bandwidthGBs: 614,
-        tflops: 33,
+        // M5 adds GPU Neural Accelerators with Metal 4 Tensor APIs; llama.cpp's
+        // Metal backend gates this path on M5/A19 specifically. Apple quotes
+        // ~70 TFLOPS FP16 via NAs (vs ~33 for the GPU-only dual-issue path
+        // older M-series uses) and 2.3× M4 Max PP — both consistent with 70.
+        tflops: 70,
         ramBwGBs: 614
     },
     {

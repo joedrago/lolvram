@@ -208,7 +208,11 @@ actually uses, and what vendors highlight for ML on spec sheets.
   RTX 5090 = 209, 4090 = 165, 3090 = 142.
 - AMD RDNA3/4 has no separate tensor unit — use dual-issue FP16 (≈ 2×
   FP32). 7900 XTX = 123, R9700 AI PRO = 96.
-- Apple Silicon: dual-issue FP16 (≈ 2× FP32). M4 Max ≈ 34, M3 Ultra ≈ 56.
+- Apple Silicon ≤ M4 / A18: dual-issue FP16 (≈ 2× FP32). M4 Max ≈ 34, M3 Ultra ≈ 56.
+- Apple Silicon M5 / A19+: GPU Neural Accelerators with Metal 4 Tensor APIs.
+  llama.cpp's Metal backend gates the new path on M5/A19 specifically. Use
+  Apple's quoted NA TFLOPS (~70 for M5 Max — about 2× the dual-issue GPU
+  number). Verified against Apple's "M5 Max PP = 2.3× M4 Max" claim.
 
 A common mistake is to enter NVIDIA's "FP16 (non-tensor)" number — that's
 half the right value. The label hint in the UI warns about this.
