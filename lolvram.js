@@ -48,14 +48,14 @@ const PRESETS = [
         ramBwGBs: 410
     },
     {
-        id: "m4-max-128",
-        name: "M4 Max 128GB unified",
+        id: "m5-max-128",
+        name: "M5 Max 128GB unified",
         vramGB: 128,
         ramGB: 0,
         unified: 0.85,
-        bandwidthGBs: 546,
-        tflops: 34,
-        ramBwGBs: 546
+        bandwidthGBs: 614,
+        tflops: 33,
+        ramBwGBs: 614
     },
     {
         id: "m3-ultra-256",
