@@ -161,8 +161,8 @@ const MODELS = [
         recurrentStateBytes: 600 * MB
     },
     {
-        id: "qwen3.5-35b-a3b",
-        name: "Qwen3.5-35B-A3B",
+        id: "qwen3.6-35b-a3b",
+        name: "Qwen3.6-35B-A3B",
         type: "moe",
         totalParams: 35e9,
         nonExpertParams: 2.8e9,

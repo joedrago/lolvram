@@ -304,7 +304,7 @@ Total params: read from the model card or `safetensors` index. Then:
     `nonExpertParams` by virtue of subtraction.)
 
 Verify your split: `nonExpertParams + activeExpertParams` should
-approximately equal the model's "active" or "A#B" label (e.g. Qwen3.5-35B-A3B
+approximately equal the model's "active" or "A#B" label (e.g. Qwen3.6-35B-A3B
 gives 2.8B + 1.0B = 3.8B ≈ "A3B").
 
 ### 3. Estimate MTP per-head overhead (if applicable)
@@ -387,7 +387,7 @@ common culprits in order:
 
 ### MoE structure
 
-- Qwen3.5-35B-A3B config: `num_experts: 256`, `num_experts_per_tok: 8`,
+- Qwen3.6-35B-A3B config: `num_experts: 256`, `num_experts_per_tok: 8`,
   `moe_intermediate_size: 512`, `shared_expert_intermediate_size: 512`,
   `mlp_only_layers: []` (so all 40 layers are MoE).
 - Computed: 40 × 256 × 3 × 2048 × 512 = 32.2B expert params; 8/256 active
