@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>lolvram — llama.cpp VRAM calculator</title>
+        <style>
+            :root {
+                --bg: #0e1014;
+                --panel: #161922;
+                --panel-2: #1c2030;
+                --border: #262b3a;
+                --text: #d8dde8;
+                --muted: #7c869c;
+                --accent: #7aa2f7;
+                --good: #7dcfa6;
+                --ok: #e0c46c;
+                --bad: #e06c75;
+                --warn: #d19a66;
+            }
+
+            * {
+                box-sizing: border-box;
+            }
+
+            html,
+            body {
+                margin: 0;
+                padding: 0;
+                background: var(--bg);
+                color: var(--text);
+                font-family: "SF Mono", "JetBrains Mono", "Fira Code", "Menlo", monospace;
+                font-size: 13px;
+                line-height: 1.45;
+            }
+
+            a {
+                color: var(--accent);
+            }
+
+            header {
+                padding: 18px 24px 8px;
+                border-bottom: 1px solid var(--border);
+            }
+
+            header h1 {
+                margin: 0 0 4px 0;
+                font-size: 18px;
+                letter-spacing: 0.5px;
+                color: var(--accent);
+            }
+
+            header p {
+                margin: 0;
+                color: var(--muted);
+                font-size: 12px;
+            }
+
+            main {
+                padding: 16px 24px 48px;
+                max-width: 1300px;
+            }
+
+            .panel {
+                background: var(--panel);
+                border: 1px solid var(--border);
+                border-radius: 6px;
+                padding: 14px 16px;
+                margin: 14px 0;
+            }
+
+            .panel h2 {
+                margin: 0 0 10px 0;
+                font-size: 12px;
+                text-transform: uppercase;
+                letter-spacing: 1.2px;
+                color: var(--muted);
+                font-weight: normal;
+            }
+
+            .empty {
+                color: var(--muted);
+                font-size: 11px;
+                padding: 16px 4px;
+                text-align: center;
+            }
+
+            .row {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                gap: 10px 18px;
+                align-items: start;
+            }
+
+            .row.stack {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .row.pairs {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                max-width: 720px;
+            }
+
+            .field {
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+            }
+
+            .field label {
+                font-size: 11px;
+                color: var(--muted);
+                letter-spacing: 0.4px;
+            }
+
+            .field input,
+            .field select {
+                background: var(--panel-2);
+                border: 1px solid var(--border);
+                color: var(--text);
+                font-family: inherit;
+                font-size: 13px;
+                padding: 6px 8px;
+                border-radius: 4px;
+                outline: none;
+            }
+
+            .field input:focus,
+            .field select:focus {
+                border-color: var(--accent);
+            }
+
+            .field input[disabled] {
+                opacity: 0.4;
+                cursor: not-allowed;
+            }
+
+            .field .hint {
+                font-size: 10px;
+                color: var(--muted);
+                opacity: 0.8;
+            }
+
+            .checkbox {
+                display: flex;
+                gap: 8px;
+                align-items: center;
+            }
+
+            .checkbox input {
+                accent-color: var(--accent);
+            }
+
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 12px;
+            }
+
+            thead th {
+                text-align: left;
+                font-weight: normal;
+                color: var(--muted);
+                text-transform: uppercase;
+                letter-spacing: 0.6px;
+                font-size: 10.5px;
+                padding: 8px 10px;
+                border-bottom: 1px solid var(--border);
+                cursor: pointer;
+                user-select: none;
+                white-space: nowrap;
+            }
+
+            thead tr.sortrow th:hover {
+                color: var(--text);
+            }
+
+            thead th.sort-asc::after {
+                content: " ▲";
+                color: var(--accent);
+            }
+
+            thead th.sort-desc::after {
+                content: " ▼";
+                color: var(--accent);
+            }
+
+            thead tr.filterrow th {
+                padding: 4px 6px 8px;
+                cursor: default;
+                border-bottom: 1px solid var(--border);
+            }
+
+            thead tr.filterrow input {
+                width: 100%;
+                min-width: 0;
+                background: var(--panel-2);
+                border: 1px solid var(--border);
+                color: var(--text);
+                font-family: inherit;
+                font-size: 11px;
+                padding: 3px 5px;
+                border-radius: 3px;
+                outline: none;
+            }
+
+            thead tr.filterrow input:focus {
+                border-color: var(--accent);
+            }
+
+            tbody td {
+                padding: 6px 10px;
+                border-bottom: 1px solid var(--panel-2);
+                white-space: nowrap;
+            }
+
+            tbody tr:hover {
+                background: var(--panel-2);
+            }
+
+            td.num {
+                text-align: right;
+                font-variant-numeric: tabular-nums;
+            }
+
+            td.status {
+                color: var(--muted);
+                font-size: 11px;
+            }
+
+            .pill {
+                display: inline-block;
+                padding: 1px 6px;
+                border-radius: 3px;
+                font-size: 10.5px;
+                background: var(--panel-2);
+                color: var(--muted);
+            }
+
+            .good {
+                color: var(--good);
+            }
+            .ok {
+                color: var(--ok);
+            }
+            .warn {
+                color: var(--warn);
+            }
+            .bad {
+                color: var(--bad);
+            }
+            .dim {
+                color: var(--muted);
+            }
+
+            footer {
+                color: var(--muted);
+                font-size: 10.5px;
+                padding: 8px 24px 16px;
+                line-height: 1.6;
+            }
+        </style>
+    </head>
+    <body>
+        <header>
+            <h1>lolvram</h1>
+            <p>
+                back-of-envelope VRAM, RAM, and tokens/sec for llama.cpp models. all numbers are estimates — verify with
+                llama-bench.
+            </p>
+        </header>
+
+        <main>
+            <section class="panel">
+                <h2>Hardware preset</h2>
+                <div class="row">
+                    <div class="field">
+                        <label for="preset">Preset</label>
+                        <select id="preset"></select>
+                    </div>
+                </div>
+            </section>
+
+            <section class="panel">
+                <h2>Hardware</h2>
+                <div class="row pairs">
+                    <div class="field">
+                        <label for="vram">VRAM (GB)</label>
+                        <input id="vram" type="number" min="0" step="0.5" />
+                    </div>
+                    <div class="field">
+                        <label for="bw">VRAM bandwidth (GB/s)</label>
+                        <input id="bw" type="number" min="0" step="10" />
+                    </div>
+                    <div class="field">
+                        <label for="ram">CPU RAM (GB)</label>
+                        <input id="ram" type="number" min="0" step="1" />
+                    </div>
+                    <div class="field">
+                        <label for="rambw">CPU RAM bandwidth (GB/s)</label>
+                        <input id="rambw" type="number" min="0" step="5" />
+                        <span class="hint">used for MoE spillover. typical dual-channel DDR4 ~50, DDR5 ~80, DDR5-6400 ~100.</span>
+                    </div>
+                    <div class="field">
+                        <label for="unified">Unified ratio</label>
+                        <input id="unified" type="number" min="0" max="1" step="any" placeholder="e.g. 0.75" />
+                        <span class="hint">leave blank for discrete GPU. when set, VRAM becomes total device RAM × ratio.</span>
+                    </div>
+                    <div class="field">
+                        <label for="tflops">GPU FP16 TFLOPS</label>
+                        <input id="tflops" type="number" min="0" step="1" />
+                        <span class="hint"
+                            >tensor-core FP16 with FP32 accumulate, no sparsity (what llama.cpp tensor matmul uses). AMD/Apple
+                            GPUs: dense FP16.</span
+                        >
+                    </div>
+                </div>
+            </section>
+
+            <section class="panel">
+                <h2>Options</h2>
+                <div class="row stack">
+                    <div class="checkbox">
+                        <input id="mtp" type="checkbox" />
+                        <label for="mtp">Enable MTP / speculative decoding</label>
+                    </div>
+                </div>
+                <div class="row pairs" style="margin-top: 10px">
+                    <div class="field">
+                        <label for="mtp-draft">MTP draft heads</label>
+                        <input id="mtp-draft" type="number" min="0" step="1" />
+                        <span class="hint">how many tokens the draft proposes per main pass. each head adds memory.</span>
+                    </div>
+                    <div class="field">
+                        <label for="mtp-accept">MTP acceptance rate</label>
+                        <input id="mtp-accept" type="number" min="0" max="1" step="0.05" />
+                        <span class="hint"
+                            >per-draft-token accept probability (0–1). code/structured ~0.8, casual chat ~0.6, creative
+                            ~0.4.</span
+                        >
+                    </div>
+                </div>
+            </section>
+
+            <section class="panel">
+                <h2>Models</h2>
+                <table id="models">
+                    <thead>
+                        <tr class="sortrow">
+                            <th data-sort="model">Model</th>
+                            <th data-sort="quant">Quant</th>
+                            <th data-sort="kv">KV (k/v)</th>
+                            <th data-sort="ctx" class="num">Context</th>
+                            <th data-sort="weights" class="num">Weights</th>
+                            <th data-sort="kvsize" class="num">KV cache</th>
+                            <th data-sort="vram" class="num">VRAM used</th>
+                            <th data-sort="ram" class="num">RAM used</th>
+                            <th data-sort="pp" class="num">PP t/s</th>
+                            <th data-sort="tg" class="num">TG t/s</th>
+                            <th data-sort="status">Status</th>
+                        </tr>
+                        <tr class="filterrow">
+                            <th><input data-filter="model" type="search" placeholder="filter…" /></th>
+                            <th><input data-filter="quant" type="search" placeholder="filter…" /></th>
+                            <th><input data-filter="kv" type="search" placeholder="filter…" /></th>
+                            <th><input data-filter="ctx" type="search" placeholder="filter…" /></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="models-body"></tbody>
+                </table>
+            </section>
+        </main>
+
+        <footer>
+            estimates use compute/bandwidth utilization fudge factors (PP dense ≈ 0.25 · PP MoE ≈ 0.10 · TG dense ≈ 0.7 · TG MoE ≈
+            0.3, all tunable in lolvram.js). MTP speedup = `1 + Σ acceptance^i for i=1..draftCount`; each draft head adds its own
+            weights + per-head KV. TG accounts for full KV-cache reads each token. color: <span class="good">good</span> ·
+            <span class="ok">ok</span> · <span class="bad">bad / oversize</span>. MoE expert spillover allowed; non-expert weights
+            + KV must fit in VRAM.
+        </footer>
+
+        <script src="./lolvram.js"></script>
+    </body>
+</html>
